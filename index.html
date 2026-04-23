@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EMT 60-Question Randomized Assessment Quiz</title>
+    <title>EMT Interactive Assessment Quiz</title>
     <style>
         :root {
             --primary: #2c3e50;
@@ -34,12 +34,9 @@
             z-index: 100;
         }
 
-        .header h1 {
-            margin: 0;
-            font-size: 1.5rem;
-        }
+        .header h1 { margin: 0; font-size: 1.5rem; }
 
-        #score-display {
+        #score-counter {
             font-weight: bold;
             color: #f1c40f;
             margin-top: 5px;
@@ -59,6 +56,7 @@
             margin-bottom: 20px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.05);
             border-left: 5px solid var(--primary);
+            transition: all 0.3s ease;
         }
 
         .question-text {
@@ -75,64 +73,53 @@
 
         .option-label {
             display: block;
-            padding: 10px 15px;
+            padding: 12px 15px;
             margin-bottom: 8px;
             background-color: #f1f2f6;
             border: 1px solid #dcdde1;
             border-radius: 4px;
             cursor: pointer;
-            transition: background-color 0.2s;
+            transition: all 0.2s;
         }
 
-        .option-label:hover {
-            background-color: #dfe4ea;
-        }
+        .option-label:hover { background-color: #dfe4ea; }
 
         .option-label input[type="radio"] {
             margin-right: 10px;
             transform: scale(1.2);
         }
 
+        /* Classes for Instant Feedback */
+        .correct-choice {
+            background-color: #d5f5e3 !important;
+            border-color: var(--correct) !important;
+            color: #1b5e20;
+            font-weight: bold;
+        }
+
+        .wrong-choice {
+            background-color: #fadbd8 !important;
+            border-color: var(--incorrect) !important;
+            color: #721c24;
+        }
+
         .explanation {
             display: none;
             margin-top: 15px;
-            padding: 10px;
+            padding: 15px;
             border-radius: 4px;
             font-size: 0.95rem;
             background-color: #e8f4f8;
             border-left: 4px solid #3498db;
+            animation: fadeIn 0.5s;
         }
 
-        .submit-container {
-            text-align: center;
-            margin: 40px 0;
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
-        button {
-            background-color: var(--secondary);
-            color: white;
-            border: none;
-            padding: 12px 30px;
-            font-size: 1.2rem;
-            border-radius: 5px;
-            cursor: pointer;
-            box-shadow: 0 3px 6px rgba(0,0,0,0.1);
-            transition: background-color 0.2s;
-        }
-
-        button:hover {
-            background-color: #c0392b;
-        }
-
-        .correct-answer {
-            background-color: #d5f5e3 !important;
-            border-color: var(--correct) !important;
-        }
-
-        .wrong-answer {
-            background-color: #fadbd8 !important;
-            border-color: var(--incorrect) !important;
-        }
+        .disabled { pointer-events: none; opacity: 0.8; }
 
         @media (max-width: 600px) {
             .header h1 { font-size: 1.2rem; }
@@ -143,103 +130,87 @@
 <body>
 
     <div class="header">
-        <h1>EMT Randomized Assessment Quiz</h1>
-        <div id="score-display">Answer all 60 questions below</div>
+        <h1>EMT Assessment Quiz</h1>
+        <div id="score-counter">Score: 0 / 0</div>
     </div>
 
     <div class="container">
-        <form id="quiz-form">
-            <div id="questions-container"></div>
-            
-            <div class="submit-container">
-                <button type="button" id="submit-btn">Submit Quiz & View Score</button>
-            </div>
-        </form>
+        <div id="questions-container"></div>
     </div>
 
     <script>
-        // Exactly 60 Questions
         const quizData = [
-            // BSNNAC (6 questions)
-            { q: "In the BSNNAC scene size-up mnemonic, what does the 'B' stand for?", options: ["Breathing", "Blood Pressure", "Body Substance Isolation (BSI)", "Baseline Vitals"], ans: 2, exp: "B stands for Body Substance Isolation (Standard Precautions), protecting the EMT from infectious diseases." },
-            { q: "What does the 'S' in BSNNAC stand for?", options: ["Symptoms", "Scene Safety", "Severity", "Sensation"], ans: 1, exp: "S stands for Scene Safety. Ensuring the scene is safe for responders is the highest priority." },
-            { q: "What does the first 'N' in BSNNAC remind the EMT to determine?", options: ["Number of patients", "Nerve function", "Normal vitals", "Neck pain"], ans: 0, exp: "N stands for Number of patients, helping the EMT decide if additional units are needed." },
-            { q: "What does the second 'N' in BSNNAC stand for?", options: ["Non-rebreather", "Nature of Illness / Mechanism of Injury", "Neurological status", "Normal breathing"], ans: 1, exp: "N stands for Nature of Illness (NOI) for medical calls or Mechanism of Injury (MOI) for trauma calls." },
-            { q: "What does the 'A' in BSNNAC represent?", options: ["Airway", "Alertness", "Auscultation", "Additional Resources"], ans: 3, exp: "A stands for Additional Resources, prompting the EMT to call for ALS or specialized rescue early." },
-            { q: "What does the 'C' in BSNNAC represent?", options: ["Circulation", "Cervical spine (C-spine) precautions", "Capillary refill", "Chest pain"], ans: 1, exp: "C stands for C-spine precautions. EMTs must consider stabilizing the head and neck if trauma is suspected." },
+            // BSNNAC
+            { q: "In the BSNNAC scene size-up mnemonic, what does the 'B' stand for?", options: ["Breathing", "Blood Pressure", "Body Substance Isolation (BSI)", "Baseline Vitals"], ans: 2, exp: "B stands for Body Substance Isolation (also known as Standard Precautions). It is the first step in ensuring provider safety." },
+            { q: "What does the 'S' in BSNNAC stand for?", options: ["Symptoms", "Scene Safety", "Severity", "Sensation"], ans: 1, exp: "S stands for Scene Safety. You must never enter an unsafe scene; your safety is the highest priority." },
+            { q: "What does the first 'N' in BSNNAC remind the EMT to determine?", options: ["Number of patients", "Nerve function", "Normal vitals", "Neck pain"], ans: 0, exp: "N stands for Number of patients. This helps determine if the incident exceeds your current resources." },
+            { q: "What does the second 'N' in BSNNAC stand for?", options: ["Non-rebreather", "Nature of Illness / Mechanism of Injury", "Neurological status", "Normal breathing"], ans: 1, exp: "N stands for NOI (Medical) or MOI (Trauma), which helps you form a general impression." },
+            { q: "What does the 'A' in BSNNAC represent?", options: ["Airway", "Alertness", "Auscultation", "Additional Resources"], ans: 3, exp: "A stands for Additional Resources. Call for ALS, Fire, or Police early if the scene requires it." },
+            { q: "What does the 'C' in BSNNAC represent?", options: ["Circulation", "Cervical spine (C-spine) precautions", "Capillary refill", "Chest pain"], ans: 1, exp: "C stands for C-spine. Based on the MOI, you must decide immediately if manual stabilization of the head and neck is needed." },
             
-            // Respiratory Rates for all age groups (7 questions)
-            { q: "What is the normal resting respiratory rate for a Newborn (0-1 month)?", options: ["12 - 20 breaths/min", "20 - 30 breaths/min", "30 - 60 breaths/min", "60 - 80 breaths/min"], ans: 2, exp: "Newborns have the fastest respiratory rate, normally 30-60 breaths per minute." },
-            { q: "What is the normal resting respiratory rate for an Infant (1-12 months)?", options: ["15 - 30 breaths/min", "20 - 30 breaths/min", "25 - 50 breaths/min", "40 - 70 breaths/min"], ans: 2, exp: "The normal resting respiratory rate for an infant is 25-50 breaths per minute." },
-            { q: "What is the normal resting respiratory rate for a Toddler (1-3 years)?", options: ["12 - 20 breaths/min", "15 - 25 breaths/min", "20 - 30 breaths/min", "25 - 40 breaths/min"], ans: 2, exp: "The normal resting respiratory rate for a toddler is 20-30 breaths per minute." },
-            { q: "What is the normal resting respiratory rate for a Preschooler (3-5 years)?", options: ["12 - 20 breaths/min", "15 - 25 breaths/min", "20 - 30 breaths/min", "25 - 40 breaths/min"], ans: 2, exp: "The normal resting respiratory rate for a preschooler remains around 20-30 breaths per minute." },
-            { q: "What is the normal resting respiratory rate for a School Age child (6-10 years)?", options: ["12 - 20 breaths/min", "15 - 30 breaths/min", "20 - 40 breaths/min", "30 - 50 breaths/min"], ans: 1, exp: "The normal resting respiratory rate for a school age child is 15-30 breaths per minute." },
-            { q: "What is the normal resting respiratory rate for an Adolescent (11-18 years)?", options: ["8 - 15 breaths/min", "12 - 20 breaths/min", "15 - 30 breaths/min", "20 - 30 breaths/min"], ans: 1, exp: "Adolescents have the same normal respiratory rate as adults: 12-20 breaths per minute." },
-            { q: "What is the normal resting respiratory rate for an Adult (18+ years)?", options: ["8 - 12 breaths/min", "12 - 20 breaths/min", "15 - 25 breaths/min", "20 - 30 breaths/min"], ans: 1, exp: "The normal respiratory rate for an adult at rest is 12-20 breaths per minute." },
+            // Respiratory Rates
+            { q: "What is the normal resting respiratory rate for a Newborn (0-1 month)?", options: ["12-20 breaths/min", "20-30 breaths/min", "30-60 breaths/min", "60-80 breaths/min"], ans: 2, exp: "Newborns breathe much faster than adults, with a normal range of 30-60 breaths per minute." },
+            { q: "What is the normal resting respiratory rate for an Infant (1-12 months)?", options: ["15-30 breaths/min", "20-30 breaths/min", "25-50 breaths/min", "40-70 breaths/min"], ans: 2, exp: "Infants typically breathe at a rate of 25-50 breaths per minute." },
+            { q: "What is the normal resting respiratory rate for a Toddler (1-3 years)?", options: ["12-20 breaths/min", "15-25 breaths/min", "20-30 breaths/min", "25-40 breaths/min"], ans: 2, exp: "Toddlers average 20-30 breaths per minute." },
+            { q: "What is the normal resting respiratory rate for a Preschooler (3-5 years)?", options: ["12-20 breaths/min", "15-25 breaths/min", "20-30 breaths/min", "25-40 breaths/min"], ans: 2, exp: "Preschoolers typically maintain a rate of 20-30 breaths per minute." },
+            { q: "What is the normal resting respiratory rate for a School Age child (6-10 years)?", options: ["12-20 breaths/min", "15-30 breaths/min", "20-40 breaths/min", "30-50 breaths/min"], ans: 1, exp: "School-age children slow down to 15-30 breaths per minute." },
+            { q: "What is the normal resting respiratory rate for an Adolescent (11-18 years)?", options: ["8-15 breaths/min", "12-20 breaths/min", "15-30 breaths/min", "20-30 breaths/min"], ans: 1, exp: "By adolescence, respiratory rates match adult norms of 12-20 breaths per minute." },
+            { q: "What is the normal resting respiratory rate for an Adult (18+ years)?", options: ["8-12 breaths/min", "12-20 breaths/min", "15-25 breaths/min", "20-30 breaths/min"], ans: 1, exp: "Adults typically breathe 12-20 times per minute at rest." },
 
-            // Heart Rates (BPM) for all age groups (7 questions)
-            { q: "What is the normal resting heart rate for a Newborn (0-1 month)?", options: ["60 - 100 bpm", "80 - 120 bpm", "100 - 170 bpm", "150 - 200 bpm"], ans: 2, exp: "Newborns have a normal resting heart rate of 100-170 beats per minute." },
-            { q: "What is the normal resting heart rate for an Infant (1-12 months)?", options: ["60 - 100 bpm", "70 - 110 bpm", "90 - 160 bpm", "120 - 180 bpm"], ans: 2, exp: "Infants have a normal resting heart rate of 90-160 beats per minute." },
-            { q: "What is the normal resting heart rate for a Toddler (1-3 years)?", options: ["60 - 100 bpm", "80 - 140 bpm", "90 - 150 bpm", "100 - 160 bpm"], ans: 1, exp: "Toddlers have a normal resting heart rate of 80-140 beats per minute." },
-            { q: "What is the normal resting heart rate for a Preschooler (3-5 years)?", options: ["60 - 100 bpm", "70 - 120 bpm", "80 - 140 bpm", "90 - 150 bpm"], ans: 1, exp: "Preschoolers have a normal resting heart rate of 70-120 beats per minute." },
-            { q: "What is the normal resting heart rate for a School Age child (6-10 years)?", options: ["60 - 100 bpm", "65 - 120 bpm", "80 - 130 bpm", "90 - 140 bpm"], ans: 1, exp: "School age children have a normal resting heart rate of 65-120 beats per minute." },
-            { q: "What is the normal resting heart rate for an Adolescent (11-18 years)?", options: ["50 - 90 bpm", "60 - 100 bpm", "70 - 110 bpm", "80 - 120 bpm"], ans: 1, exp: "Adolescents have a normal resting heart rate of 60-100 beats per minute, same as an adult." },
-            { q: "What is the normal resting heart rate for an Adult (18+ years)?", options: ["50 - 80 bpm", "60 - 100 bpm", "70 - 110 bpm", "80 - 120 bpm"], ans: 1, exp: "The normal resting pulse rate for an adult is 60-100 beats per minute." },
+            // Heart Rates
+            { q: "What is the normal resting heart rate for a Newborn (0-1 month)?", options: ["60-100 bpm", "80-120 bpm", "100-170 bpm", "150-200 bpm"], ans: 2, exp: "Newborn pulses are very rapid, ranging from 100-170 bpm." },
+            { q: "What is the normal resting heart rate for an Infant (1-12 months)?", options: ["60-100 bpm", "70-110 bpm", "90-160 bpm", "120-180 bpm"], ans: 2, exp: "Infants have a normal pulse range of 90-160 bpm." },
+            { q: "What is the normal resting heart rate for a Toddler (1-3 years)?", options: ["60-100 bpm", "80-140 bpm", "90-150 bpm", "100-160 bpm"], ans: 1, exp: "Toddlers range from 80-140 bpm." },
+            { q: "What is the normal resting heart rate for a Preschooler (3-5 years)?", options: ["60-100 bpm", "70-120 bpm", "80-140 bpm", "90-150 bpm"], ans: 1, exp: "Preschoolers range from 70-120 bpm." },
+            { q: "What is the normal resting heart rate for a School Age child (6-10 years)?", options: ["60-100 bpm", "65-120 bpm", "80-130 bpm", "90-140 bpm"], ans: 1, exp: "School-age children range from 65-120 bpm." },
+            { q: "What is the normal resting heart rate for an Adolescent (11-18 years)?", options: ["50-90 bpm", "60-100 bpm", "70-110 bpm", "80-120 bpm"], ans: 1, exp: "Adolescent heart rates normalize to the adult range of 60-100 bpm." },
+            { q: "What is the normal resting heart rate for an Adult (18+ years)?", options: ["50-80 bpm", "60-100 bpm", "70-110 bpm", "80-120 bpm"], ans: 1, exp: "A normal adult resting pulse is 60-100 bpm." },
 
-            // Blood Pressure (Systolic) for all age groups (7 questions)
-            { q: "What is the typical normal systolic blood pressure for a Newborn (0-1 month)?", options: ["~50 - 70 mmHg", "~70 - 90 mmHg", "~90 - 110 mmHg", "~100 - 120 mmHg"], ans: 0, exp: "Newborns generally have a systolic blood pressure around 50-70 mmHg." },
-            { q: "What is the typical normal systolic blood pressure for an Infant (1-12 months)?", options: ["~50 - 70 mmHg", "~70 - 95 mmHg", "~80 - 110 mmHg", "~90 - 120 mmHg"], ans: 1, exp: "Infants generally have a systolic blood pressure around 70-95 mmHg." },
-            { q: "What is the typical normal systolic blood pressure for a Toddler (1-3 years)?", options: ["~60 - 80 mmHg", "~70 - 90 mmHg", "~80 - 100 mmHg", "~90 - 110 mmHg"], ans: 2, exp: "Toddlers generally have a systolic blood pressure around 80-100 mmHg." },
-            { q: "What is the typical normal systolic blood pressure for a Preschooler (3-5 years)?", options: ["~70 - 90 mmHg", "~80 - 110 mmHg", "~90 - 120 mmHg", "~100 - 130 mmHg"], ans: 1, exp: "Preschoolers generally have a systolic blood pressure around 80-110 mmHg." },
-            { q: "What is the typical normal systolic blood pressure for a School Age child (6-10 years)?", options: ["~70 - 100 mmHg", "~80 - 120 mmHg", "~90 - 130 mmHg", "~100 - 140 mmHg"], ans: 1, exp: "School age children generally have a systolic blood pressure around 80-120 mmHg." },
-            { q: "What is the typical normal systolic blood pressure for an Adolescent (11-18 years)?", options: ["~80 - 100 mmHg", "~90 - 120 mmHg", "~100 - 130 mmHg", "~110 - 140 mmHg"], ans: 1, exp: "Adolescents generally have a systolic blood pressure around 90-120 mmHg." },
-            { q: "What is the normal systolic blood pressure for an Adult (18+ years)?", options: ["<= 100 mmHg", "<= 120 mmHg", "<= 140 mmHg", "<= 160 mmHg"], ans: 1, exp: "A normal adult systolic blood pressure is less than or equal to 120 mmHg." },
+            // Blood Pressure
+            { q: "What is the typical normal systolic blood pressure for a Newborn (0-1 month)?", options: ["50-70 mmHg", "70-90 mmHg", "90-110 mmHg", "100-120 mmHg"], ans: 0, exp: "Newborns have low blood pressure, starting around 50-70 mmHg systolic." },
+            { q: "What is the typical normal systolic blood pressure for an Infant (1-12 months)?", options: ["50-70 mmHg", "70-95 mmHg", "80-110 mmHg", "90-120 mmHg"], ans: 1, exp: "Infant systolic BP typically ranges from 70-95 mmHg." },
+            { q: "What is the typical normal systolic blood pressure for a Toddler (1-3 years)?", options: ["60-80 mmHg", "70-90 mmHg", "80-100 mmHg", "90-110 mmHg"], ans: 2, exp: "Toddler systolic BP ranges from 80-100 mmHg." },
+            { q: "What is the typical normal systolic blood pressure for a Preschooler (3-5 years)?", options: ["70-90 mmHg", "80-110 mmHg", "90-120 mmHg", "100-130 mmHg"], ans: 1, exp: "Preschooler systolic BP ranges from 80-110 mmHg." },
+            { q: "What is the typical normal systolic blood pressure for a School Age child (6-10 years)?", options: ["70-100 mmHg", "80-120 mmHg", "90-130 mmHg", "100-140 mmHg"], ans: 1, exp: "School-age systolic BP ranges from 80-120 mmHg." },
+            { q: "What is the typical normal systolic blood pressure for an Adolescent (11-18 years)?", options: ["80-100 mmHg", "90-120 mmHg", "100-130 mmHg", "110-140 mmHg"], ans: 1, exp: "Adolescent systolic BP ranges from 90-120 mmHg." },
+            { q: "What is the normal systolic blood pressure for an Adult (18+ years)?", options: ["<= 100 mmHg", "<= 120 mmHg", "<= 140 mmHg", "<= 160 mmHg"], ans: 1, exp: "Normal adult systolic BP is 120 mmHg or less." },
 
-            // Primary Assessment & AVPU (8 questions)
-            { q: "What is the main goal of the primary assessment?", options: ["Gather a full medical history", "Identify and treat immediate life threats", "Obtain baseline vital signs", "Perform a detailed physical exam"], ans: 1, exp: "The primary assessment focuses exclusively on identifying and treating life threats (Airway, Breathing, Circulation)." },
-            { q: "If a patient appears lifeless (unresponsive, no breathing), what approach should you take?", options: ["A-B-C", "O-P-Q", "C-A-B", "S-A-M"], ans: 2, exp: "For a lifeless patient, use C-A-B (Circulation, Airway, Breathing), starting with a pulse check and compressions if needed." },
-            { q: "In the AVPU scale, what does 'A' stand for?", options: ["Airway", "Assessment", "Alert", "Action"], ans: 2, exp: "A stands for Alert. The patient is awake, will talk, and answer questions sensibly." },
-            { q: "In the AVPU scale, what does 'V' stand for?", options: ["Verbal", "Vital", "Visual", "Ventilation"], ans: 0, exp: "V stands for Verbal. The patient responds to verbal stimuli, such as talking or shouting." },
-            { q: "In the AVPU scale, what does 'P' stand for?", options: ["Pulse", "Painful", "Pressure", "Pupils"], ans: 1, exp: "P stands for Painful. The patient responds only to painful stimuli, like pinching a toe." },
-            { q: "In the AVPU scale, what does 'U' stand for?", options: ["Unresponsive", "Unequal", "Urgent", "Unstable"], ans: 0, exp: "U stands for Unresponsive. The patient does not respond to verbal or painful stimuli." },
-            { q: "When managing the airway of a trauma patient with a suspected spinal injury, what maneuver should be used?", options: ["Head-tilt, chin-lift", "Jaw-thrust maneuver", "Neck hyperextension", "Blind finger sweep"], ans: 1, exp: "The jaw-thrust maneuver is used for trauma patients to open the airway without moving the neck." },
-            { q: "What is the appropriate action if you find exsanguinating (severe, life-threatening) bleeding during the primary assessment?", options: ["Wait for the secondary assessment to bandage it", "Stop it immediately", "Take a blood pressure first", "Apply oxygen first"], ans: 1, exp: "Severe, life-threatening bleeding must be stopped immediately during the primary assessment." },
+            // Primary Assessment & AVPU
+            { q: "What is the main goal of the primary assessment?", options: ["Gather a full medical history", "Identify and treat immediate life threats", "Obtain baseline vital signs", "Perform a detailed physical exam"], ans: 1, exp: "The primary assessment is designed to find and fix things that will kill the patient in the next few minutes." },
+            { q: "If a patient appears 'lifeless' (unresponsive, no breathing/agonal), what is the priority?", options: ["A-B-C", "Vitals", "C-A-B", "SAMPLE history"], ans: 2, exp: "For a lifeless patient, prioritize Circulation (C-A-B) to begin compressions immediately if no pulse is found." },
+            { q: "In AVPU, a patient who only wakes up when you shout their name is classified as:", options: ["Alert", "Verbal", "Painful", "Unresponsive"], ans: 1, exp: "Verbal means the patient responds to vocal stimuli but is not necessarily oriented." },
+            { q: "In AVPU, a patient who only withdraws when you perform a sternal rub is:", options: ["Alert", "Verbal", "Painful", "Unresponsive"], ans: 2, exp: "Painful means they respond only to uncomfortable stimuli." },
+            { q: "In AVPU, a patient who does not move or make a sound after shouting and pinching is:", options: ["Unresponsive", "Alert", "Lethargic", "Stable"], ans: 0, exp: "Unresponsive patients have no reaction to verbal or painful stimuli." },
+            { q: "What is the preferred method for opening the airway of a trauma patient?", options: ["Head-tilt, chin-lift", "Jaw-thrust maneuver", "Mouth-to-mask", "Recovery position"], ans: 1, exp: "The jaw-thrust opens the airway while minimizing movement of the cervical spine." },
+            { q: "During the primary assessment, you find a massive arterial bleed. You should:", options: ["Continue the assessment", "Apply oxygen first", "Stop the bleed immediately", "Finish the airway check"], ans: 2, exp: "Exsanguinating hemorrhage is the only thing that takes priority over Airway/Breathing." },
 
-            // OPQRST (6 questions)
-            { q: "In the OPQRST mnemonic, what does 'O' stand for?", options: ["Outcome", "Onset", "Observation", "Oxygen"], ans: 1, exp: "O stands for Onset (What were you doing when the problem began?)." },
-            { q: "In the OPQRST mnemonic, what does 'P' stand for?", options: ["Pain", "Pulse", "Provocation/Palliation", "Past History"], ans: 2, exp: "P stands for Provocation/Palliation (Does anything trigger it or make it feel better?)." },
-            { q: "In the OPQRST mnemonic, what does 'Q' stand for?", options: ["Quantity", "Quality", "Quickness", "Quotient"], ans: 1, exp: "Q stands for Quality (Can you describe the pain? e.g., sharp, dull)." },
-            { q: "In the OPQRST mnemonic, what does 'R' stand for?", options: ["Region/Radiation", "Respiration", "Reaction", "Rate"], ans: 0, exp: "R stands for Region/Radiation (Where is the pain? Does it shoot or spread?)." },
-            { q: "In the OPQRST mnemonic, what does 'S' stand for?", options: ["Signs", "Symptoms", "Severity", "Skin"], ans: 2, exp: "S stands for Severity (On a scale of 0 to 10, how bad is the pain?)." },
-            { q: "In the OPQRST mnemonic, what does 'T' stand for?", options: ["Temperature", "Tenderness", "Time", "Trauma"], ans: 2, exp: "T stands for Time (When did the problem start?)." },
+            // OPQRST
+            { q: "What question evaluates 'Provocation' in OPQRST?", options: ["When did it start?", "What makes the pain worse?", "What does the pain feel like?", "Does the pain move anywhere?"], ans: 1, exp: "Provocation/Palliation asks what triggers the symptom or makes it better/worse." },
+            { q: "Which part of OPQRST involves asking the patient to describe the pain (e.g., 'sharp' or 'crushing')?", options: ["Onset", "Quality", "Region", "Severity"], ans: 1, exp: "Quality refers to the patient's description of the sensation." },
+            { q: "Which part of OPQRST asks if the pain moves to the back or jaw?", options: ["Radiation", "Quality", "Onset", "Time"], ans: 0, exp: "Radiation/Region determines where the pain is and if it travels." },
+            { q: "The 'S' in OPQRST stands for:", options: ["Signs", "Symptoms", "Severity", "Sensation"], ans: 2, exp: "Severity is usually measured on a 1-10 scale." },
 
-            // SAMPLE (6 questions)
-            { q: "In the SAMPLE mnemonic, what does 'S' stand for?", options: ["Severity", "Signs and Symptoms", "Sensation", "Scene Safety"], ans: 1, exp: "S stands for Signs and Symptoms (What is wrong?)" },
-            { q: "In the SAMPLE mnemonic, what does 'A' stand for?", options: ["Airway", "Alertness", "Allergies", "Assessment"], ans: 2, exp: "A stands for Allergies (Are you allergic to medications, foods, etc.?)." },
-            { q: "In the SAMPLE mnemonic, what does 'M' stand for?", options: ["Mechanism", "Mental Status", "Movement", "Medications"], ans: 3, exp: "M stands for Medications (What medications are you currently taking?)." },
-            { q: "In the SAMPLE mnemonic, what does 'P' stand for?", options: ["Pertinent past history", "Pulse", "Provocation", "Pupils"], ans: 0, exp: "P stands for Pertinent past medical history (Have you had this problem before?)." },
-            { q: "In the SAMPLE mnemonic, what does 'L' stand for?", options: ["Level of consciousness", "Lacerations", "Last oral intake", "Lung sounds"], ans: 2, exp: "L stands for Last oral intake (When did you last eat or drink?)." },
-            { q: "In the SAMPLE mnemonic, what does 'E' stand for?", options: ["Extremities", "Events leading to the illness/injury", "Edema", "Evaluation"], ans: 1, exp: "E stands for Events (What sequence of events led to today's problem?)." },
+            // SAMPLE
+            { q: "The 'A' in SAMPLE history refers to:", options: ["Airway", "Assessment", "Allergies", "Age"], ans: 2, exp: "Allergies to medications, food, or environmental factors are critical to note." },
+            { q: "The 'M' in SAMPLE history stands for:", options: ["Mechanism", "Mental Status", "Medications", "Medical History"], ans: 2, exp: "Medications include prescriptions, OTC drugs, and herbal supplements." },
+            { q: "The 'L' in SAMPLE history stands for:", options: ["Last oral intake", "Level of consciousness", "Lungs", "Lacerations"], ans: 0, exp: "Last oral intake is vital for surgical considerations and potential choking risks." },
+            { q: "The 'E' in SAMPLE stands for:", options: ["Eyes", "Evaluation", "Events leading up", "Exertion"], ans: 2, exp: "Events describes what the patient was doing right before the emergency started." },
 
-            // DCAP-BTLS (8 questions)
-            { q: "In the DCAP-BTLS mnemonic, what does 'D' stand for?", options: ["Distention", "Deformities", "Discoloration", "Damage"], ans: 1, exp: "D stands for Deformities (parts of the body that no longer have a normal shape)." },
-            { q: "In DCAP-BTLS, what does 'C' stand for?", options: ["Crepitation", "Cuts", "Contusions", "Circulation"], ans: 2, exp: "C stands for Contusions, which is the medical term for bruises." },
-            { q: "In DCAP-BTLS, what does 'A' stand for?", options: ["Abrasions", "Avulsions", "Amputations", "Airway"], ans: 0, exp: "A stands for Abrasions (scrapes)." },
-            { q: "In DCAP-BTLS, what does 'P' stand for?", options: ["Pulse", "Punctures and penetrations", "Pain", "Pallor"], ans: 1, exp: "P stands for Punctures and penetrations (holes in the body)." },
-            { q: "In DCAP-BTLS, what does 'B' stand for?", options: ["Bleeding", "Breathing", "Burns", "Bones"], ans: 2, exp: "B stands for Burns (reddened, blistered, or charred areas)." },
-            { q: "In DCAP-BTLS, what does 'T' stand for?", options: ["Tenderness", "Trauma", "Time", "Temperature"], ans: 0, exp: "T stands for Tenderness (hurts when pressure is applied)." },
-            { q: "In DCAP-BTLS, what does 'L' stand for?", options: ["Lesions", "Lacerations", "Ligaments", "Lividity"], ans: 1, exp: "L stands for Lacerations (cuts or open wounds)." },
-            { q: "In DCAP-BTLS, what does 'S' stand for?", options: ["Sensation", "Swelling", "Shock", "Symmetry"], ans: 1, exp: "S stands for Swelling (result of injured capillaries bleeding under the skin)." },
+            // DCAP-BTLS
+            { q: "In DCAP-BTLS, 'Contusions' is the medical term for:", options: ["Cuts", "Bruises", "Scrapes", "Swelling"], ans: 1, exp: "Contusions are bruises caused by blunt force trauma." },
+            { q: "In DCAP-BTLS, 'Abrasions' refers to:", options: ["Deep cuts", "Broken bones", "Scrapes/Road rash", "Burns"], ans: 2, exp: "Abrasions are superficial scrapes where the skin is rubbed away." },
+            { q: "In DCAP-BTLS, 'Tenderness' is identified by:", options: ["Looking at the patient", "Palpating (touching) the area", "Listening with a stethoscope", "The patient's pulse rate"], ans: 1, exp: "Tenderness is pain that is elicited specifically when the provider touches an area." },
+            { q: "In DCAP-BTLS, 'Lacerations' are:", options: ["Bruises", "Burns", "Cuts/Open wounds", "Swelling"], ans: 2, exp: "Lacerations are jagged or smooth cuts in the skin." },
 
-            // Reassessment & Communications (5 questions)
-            { q: "How often should you reassess a STABLE patient?", options: ["Every 2 minutes", "Every 5 minutes", "Every 15 minutes", "Every 30 minutes"], ans: 2, exp: "A stable patient should be reassessed at least every 15 minutes." },
-            { q: "How often should you reassess an UNSTABLE patient?", options: ["Every 5 minutes", "Every 10 minutes", "Every 15 minutes", "Only upon arrival at the hospital"], ans: 0, exp: "An unstable patient should be reassessed at least every 5 minutes." },
-            { q: "What is paradoxical motion in the chest?", options: ["Rapid, shallow breathing", "Movement of a part of the chest in the opposite direction of the rest of the chest", "A high-pitched wheezing sound", "Unequal breath sounds"], ans: 1, exp: "Paradoxical motion occurs when a broken segment of the chest moves opposite to the rest of the rib cage during respiration (flail chest)." },
-            { q: "A 'pertinent negative' in documentation is:", options: ["A patient refusing care", "A piece of equipment that failed", "A vital sign that is too low", "A sign or symptom that is absent but important to note"], ans: 3, exp: "A pertinent negative is a symptom you would expect to find, but the patient denies having it (e.g., denying breathing difficulty when having chest pain)." },
-            { q: "When giving a radio report to the hospital, what is the first piece of information provided?", options: ["Patient's age and sex", "Unit identification and level of provider", "Patient's chief complaint", "Patient's vital signs"], ans: 1, exp: "The first step in a 12-part radio report is identifying your unit and provider level (e.g., 'Ambulance 6 BLS')." }
+            // Reassessment & Comm
+            { q: "A patient with a gunshot wound to the chest should be reassessed every:", options: ["2 minutes", "5 minutes", "15 minutes", "30 minutes"], ans: 1, exp: "Unstable or high-priority patients must be reassessed every 5 minutes." },
+            { q: "A patient with a simple isolated ankle sprain should be reassessed every:", options: ["5 minutes", "10 minutes", "15 minutes", "Only once"], ans: 2, exp: "Stable patients should be reassessed every 15 minutes." },
+            { q: "Paradoxical chest motion is a classic sign of:", options: ["Pneumonia", "Flail chest", "Asthma", "Cardiac arrest"], ans: 1, exp: "Paradoxical motion occurs when a segment of the ribs moves in during inhalation and out during exhalation." },
+            { q: "You document 'Patient denies shortness of breath' during a chest pain call. This is a:", options: ["False statement", "Pertinent negative", "Subjective finding", "Primary symptom"], ans: 1, exp: "A pertinent negative is the absence of a symptom that helps rule out or confirm certain conditions." },
+            { q: "What is the very first thing you say when calling the hospital on the radio?", options: ["Patient age", "Your unit ID", "ETA", "Chief complaint"], ans: 1, exp: "Standard radio reports begin with your Unit Identification and level of service (e.g., 'Medic 2 BLS')." }
         ];
 
-        // Shuffle function (Fisher-Yates algorithm)
+        // Shuffle logic
         function shuffleArray(array) {
             for (let i = array.length - 1; i > 0; i--) {
                 const j = Math.floor(Math.random() * (i + 1));
@@ -247,96 +218,84 @@
             }
         }
 
-        // Randomize the quiz order
         shuffleArray(quizData);
 
-        const questionsContainer = document.getElementById('questions-container');
-        const submitBtn = document.getElementById('submit-btn');
-        const scoreDisplay = document.getElementById('score-display');
+        const container = document.getElementById('questions-container');
+        const scoreCounter = document.getElementById('score-counter');
+        let correctCount = 0;
+        let attemptedCount = 0;
 
-        // Render Questions
-        quizData.forEach((qData, index) => {
-            const qCard = document.createElement('div');
-            qCard.className = 'question-card';
-            
+        function updateScore() {
+            scoreCounter.innerText = `Score: ${correctCount} / ${attemptedCount} (${Math.round((correctCount/attemptedCount)*100 || 0)}%)`;
+        }
+
+        quizData.forEach((data, i) => {
+            const card = document.createElement('div');
+            card.className = 'question-card';
+            card.id = `card-${i}`;
+
             const qText = document.createElement('div');
             qText.className = 'question-text';
-            qText.innerText = `${index + 1}. ${qData.q}`;
-            qCard.appendChild(qText);
+            qText.innerText = `${i + 1}. ${data.q}`;
+            card.appendChild(qText);
 
-            const optionsList = document.createElement('ul');
+            const optionsList = document.createElement('div');
             optionsList.className = 'options-list';
 
-            qData.options.forEach((opt, optIndex) => {
-                const li = document.createElement('li');
+            data.options.forEach((opt, optIndex) => {
                 const label = document.createElement('label');
                 label.className = 'option-label';
                 
                 const radio = document.createElement('input');
                 radio.type = 'radio';
-                radio.name = `q${index}`;
+                radio.name = `q${i}`;
                 radio.value = optIndex;
-                
-                label.appendChild(radio);
-                label.appendChild(document.createTextNode(opt));
-                li.appendChild(label);
-                optionsList.appendChild(li);
-            });
 
-            qCard.appendChild(optionsList);
-
-            const explanation = document.createElement('div');
-            explanation.className = 'explanation';
-            explanation.id = `exp${index}`;
-            explanation.innerHTML = `<strong>Explanation:</strong> ${qData.exp}`;
-            qCard.appendChild(explanation);
-
-            questionsContainer.appendChild(qCard);
-        });
-
-        // Grading Logic
-        submitBtn.addEventListener('click', () => {
-            let score = 0;
-            let answered = 0;
-
-            quizData.forEach((qData, index) => {
-                const selected = document.querySelector(`input[name="q${index}"]:checked`);
-                const labels = document.querySelectorAll(`input[name="q${index}"]`);
-                const expDiv = document.getElementById(`exp${index}`);
-
-                // Reset styling
-                labels.forEach(radio => {
-                    radio.parentElement.classList.remove('correct-answer', 'wrong-answer');
-                    radio.disabled = true; // Lock inputs after submission
+                radio.addEventListener('change', () => {
+                    handleSelection(i, optIndex, data.ans, card);
                 });
 
-                if (selected) {
-                    answered++;
-                    const selectedVal = parseInt(selected.value);
-                    
-                    if (selectedVal === qData.ans) {
-                        score++;
-                        selected.parentElement.classList.add('correct-answer');
-                    } else {
-                        selected.parentElement.classList.add('wrong-answer');
-                        // Highlight the correct one too
-                        labels[qData.ans].parentElement.classList.add('correct-answer');
-                    }
-                } else {
-                    // If skipped, just highlight the right answer
-                    labels[qData.ans].parentElement.classList.add('correct-answer');
-                }
-
-                // Show explanation
-                expDiv.style.display = 'block';
+                label.appendChild(radio);
+                label.appendChild(document.createTextNode(opt));
+                optionsList.appendChild(label);
             });
 
-            submitBtn.style.display = 'none';
-            scoreDisplay.innerHTML = `You scored ${score} out of 60! (${Math.round((score/60)*100)}%)`;
-            
-            // Scroll to top to see score
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+            card.appendChild(optionsList);
+
+            const exp = document.createElement('div');
+            exp.className = 'explanation';
+            exp.id = `exp-${i}`;
+            exp.innerHTML = `<strong>Explanation:</strong> ${data.exp}`;
+            card.appendChild(exp);
+
+            container.appendChild(card);
         });
+
+        function handleSelection(qIdx, selectedIdx, correctIdx, cardElement) {
+            const labels = cardElement.querySelectorAll('.option-label');
+            const expDiv = cardElement.querySelector('.explanation');
+            
+            attemptedCount++;
+            
+            // Mark correct and wrong
+            labels.forEach((label, idx) => {
+                label.classList.add('disabled'); // Stop further clicks
+                if (idx === correctIdx) {
+                    label.classList.add('correct-choice');
+                }
+                if (idx === selectedIdx && selectedIdx !== correctIdx) {
+                    label.classList.add('wrong-choice');
+                }
+            });
+
+            if (selectedIdx === correctIdx) {
+                correctCount++;
+            }
+
+            // Show explanation
+            expDiv.style.display = 'block';
+            updateScore();
+        }
     </script>
 </body>
 </html>
